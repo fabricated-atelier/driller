@@ -5,6 +5,7 @@ import net.driller.mixin.access.MinecartFurnaceAccessor;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.world.entity.vehicle.AbstractMinecart;
 import net.minecraft.world.entity.vehicle.MinecartChest;
@@ -17,6 +18,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.RailShape;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.phys.Vec3;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
@@ -57,14 +59,6 @@ public class DrillerLogic {
         Level world = minecart.level();
         if (world.isClientSide()) {
             return;
-        }
-
-        Vec3 movement = furnaceCart.getDeltaMovement();
-        if (movement.horizontalDistanceSqr() > 0.001) {
-            Direction currentDir = getDirectionFromMovement(movement);
-            if (currentDir != null) {
-                lastKnownDirection.put(furnaceCart.getUUID(), currentDir);
-            }
         }
 
         long currentTime = world.getGameTime();
@@ -117,7 +111,7 @@ public class DrillerLogic {
                 BlockState belowState = world.getBlockState(belowPos);
 
                 if (!(belowState.getBlock() instanceof BaseRailBlock)) {
-                    System.out.println("DEBUG: No rail found at distance " + distance + " at " + checkPos);
+                    System.out.println("DEBUG: No rail found at distance " + distance + " at " + checkPos + " : " + facing);
                     return true;
                 }
             }
@@ -216,10 +210,11 @@ public class DrillerLogic {
 
         double speed = movement.horizontalDistance();
 
-        if (speed < 0.05) {
-            Direction facing = getFacingDirection(furnaceCart);
+        Direction facing = getFacingDirection(furnaceCart);
+        if (facing == null) return;
 
-            if (facing != null && isWallAhead(furnaceCart, facing)) {
+        if (speed < 0.05F) {
+            if (isWallAhead(furnaceCart, facing)) {
                 borerStates.put(furnaceCart.getUUID(), BorerState.BREAKING_LAYER);
                 currentBlockIndex.put(furnaceCart.getUUID(), 0);
                 lastActionTime.put(furnaceCart.getUUID(), furnaceCart.level().getGameTime());
@@ -227,7 +222,19 @@ public class DrillerLogic {
                 furnaceCart.setDeltaMovement(Vec3.ZERO);
 
                 System.out.println("DEBUG: Switched to BREAKING_LAYER. Facing: " + facing);
+            } else {
+                pushMinecartForward(furnaceCart, facing);
+                System.out.println("DEBUG: Pushing to start movement");
             }
+            return;
+        }
+        if (isWallAhead(furnaceCart, facing)) {
+            Direction facing2 = getFacingDirection(furnaceCart);
+            borerStates.put(furnaceCart.getUUID(), BorerState.BREAKING_LAYER);
+            currentBlockIndex.put(furnaceCart.getUUID(), 0);
+            lastActionTime.put(furnaceCart.getUUID(), furnaceCart.level().getGameTime());
+            furnaceCart.setDeltaMovement(Vec3.ZERO);
+            System.out.println("DEBUG: Switched to BREAKING_LAYER. Facing: " + facing2);
         }
     }
 
@@ -247,7 +254,7 @@ public class DrillerLogic {
         }
 
         BlockPos cartPos = furnaceCart.blockPosition();
-        BlockPos targetPos = cartPos.relative(facing, 2);
+        BlockPos targetPos = cartPos.relative(facing, 1);
         List<BlockPos> blocksToBreak = getTunnelBlockPositions(targetPos, facing);
 
         int blockIndex = currentBlockIndex.getOrDefault(furnaceCart.getUUID(), 0);
@@ -365,22 +372,39 @@ public class DrillerLogic {
         BlockPos blockPos = furnaceCart.blockPosition();
 
         BlockPos railPos = blockPos;
-        if (world.getBlockState(blockPos.below()).is(net.minecraft.tags.BlockTags.RAILS)) {
+        if (world.getBlockState(blockPos.below()).is(BlockTags.RAILS)) {
             railPos = blockPos.below();
         }
 
         BlockState blockState = world.getBlockState(railPos);
         if (blockState.getBlock() instanceof BaseRailBlock railBlock) {
             RailShape shape = blockState.getValue(railBlock.getShapeProperty());
+            Direction railAxis = getRailDirection(shape);
 
-            Direction railDir = getRailDirection(shape);
-            if (railDir != null) {
+            if (railAxis != null) {
                 Vec3 movement = furnaceCart.getDeltaMovement();
+
                 if (movement.horizontalDistanceSqr() > 0.001) {
-                    double dot = movement.x * railDir.getStepX() + movement.z * railDir.getStepZ();
-                    Direction result = dot >= 0 ? railDir : railDir.getOpposite();
-                    lastKnownDirection.put(furnaceCart.getUUID(), result);
-                    return result;
+                    double dot = movement.x * railAxis.getStepX() + movement.z * railAxis.getStepZ();
+                    Direction fromVelocity = dot >= 0 ? railAxis : railAxis.getOpposite();
+
+                    Direction childSide = getChildrenSide(furnaceCart);
+                    if (childSide != null && fromVelocity.equals(childSide)) {
+                        fromVelocity = fromVelocity.getOpposite();
+                    }
+
+                    lastKnownDirection.put(furnaceCart.getUUID(), fromVelocity);
+                    return fromVelocity;
+
+                } else {
+                    Direction childSide = getChildrenSide(furnaceCart);
+                    if (childSide != null) {
+                        Direction awayFromChildren = childSide.getOpposite();
+                        if (awayFromChildren.equals(railAxis) || awayFromChildren.equals(railAxis.getOpposite())) {
+                            lastKnownDirection.put(furnaceCart.getUUID(), awayFromChildren);
+                            return awayFromChildren;
+                        }
+                    }
                 }
             }
         }
@@ -389,6 +413,33 @@ public class DrillerLogic {
         if (stored != null) return stored;
 
         return furnaceCart.getMotionDirection();
+    }
+
+    @Nullable
+    private static Direction getChildrenSide(MinecartFurnace furnaceCart) {
+        List<AbstractMinecart> children = MinecartLinkData.getChildren(furnaceCart);
+        if (children.isEmpty()) return null;
+
+        double avgX = 0, avgZ = 0;
+        for (AbstractMinecart child : children) {
+            avgX += child.getX();
+            avgZ += child.getZ();
+        }
+        avgX /= children.size();
+        avgZ /= children.size();
+
+        double dx = avgX - furnaceCart.getX();
+        double dz = avgZ - furnaceCart.getZ();
+
+        if (Math.abs(dx) < 0.1 && Math.abs(dz) < 0.1) {
+            return null;
+        }
+
+        if (Math.abs(dx) > Math.abs(dz)) {
+            return dx > 0 ? Direction.EAST : Direction.WEST;
+        } else {
+            return dz > 0 ? Direction.SOUTH : Direction.NORTH;
+        }
     }
 
     private static Direction getRailDirection(RailShape shape) {
@@ -402,30 +453,10 @@ public class DrillerLogic {
         };
     }
 
-//    private static Direction getFacingDirection(MinecartFurnace furnaceCart) {
-//        Direction stored = lastKnownDirection.get(furnaceCart.getUUID());
-//        if (stored != null) {
-//            return stored;
-//        }
-//
-//        Vec3 movement = furnaceCart.getDeltaMovement();
-//        if (movement.horizontalDistanceSqr() > 0.001) {
-//            Direction fromMovement = getDirectionFromMovement(movement);
-//            if (fromMovement != null) {
-//                lastKnownDirection.put(furnaceCart.getUUID(), fromMovement);
-//                return fromMovement;
-//            }
-//        }
-//
-//        Direction motionDir = furnaceCart.getMotionDirection();
-//        lastKnownDirection.put(furnaceCart.getUUID(), motionDir);
-//        return motionDir;
-//    }
-
     private static boolean isWallAhead(MinecartFurnace furnaceCart, Direction facing) {
         Level world = furnaceCart.level();
         BlockPos cartPos = furnaceCart.blockPosition();
-        BlockPos checkPos = cartPos.relative(facing, 2);
+        BlockPos checkPos = cartPos.relative(facing, 1);
 
         List<BlockPos> positions = getTunnelBlockPositions(checkPos, facing);
 
