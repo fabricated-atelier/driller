@@ -27,7 +27,9 @@ public class DrillerLogic {
     private static final int TUNNEL_WIDTH = 3;
     private static final int TUNNEL_HEIGHT = 3;
     private static final int TICKS_PER_BLOCK = 20;
-    private static final int RAIL_CHECK_DISTANCE = 3;
+    private static final int RAIL_CHECK_DISTANCE = 2;
+    private static final double TRAVEL_SPEED = 0.2;
+    private static final double SPEED_TOLERANCE = 0.02;
 
     private static final Map<UUID, BorerState> borerStates = new HashMap<>();
     private static final Map<UUID, Long> lastActionTime = new HashMap<>();
@@ -206,35 +208,36 @@ public class DrillerLogic {
     }
 
     private static void handleMovingToWall(MinecartFurnace furnaceCart, MinecartAccess accessor) {
-        Vec3 movement = furnaceCart.getDeltaMovement();
-
-        double speed = movement.horizontalDistance();
-
         Direction facing = getFacingDirection(furnaceCart);
         if (facing == null) return;
 
-        if (speed < 0.05F) {
-            if (isWallAhead(furnaceCart, facing)) {
-                borerStates.put(furnaceCart.getUUID(), BorerState.BREAKING_LAYER);
-                currentBlockIndex.put(furnaceCart.getUUID(), 0);
-                lastActionTime.put(furnaceCart.getUUID(), furnaceCart.level().getGameTime());
-
-                furnaceCart.setDeltaMovement(Vec3.ZERO);
-
-                System.out.println("DEBUG: Switched to BREAKING_LAYER. Facing: " + facing);
-            } else {
-                pushMinecartForward(furnaceCart, facing);
-                System.out.println("DEBUG: Pushing to start movement");
-            }
-            return;
-        }
-        if (isWallAhead(furnaceCart, facing)) {
-            Direction facing2 = getFacingDirection(furnaceCart);
+        if (isWallAhead(furnaceCart, facing, 1)) {
+            furnaceCart.setDeltaMovement(Vec3.ZERO);
             borerStates.put(furnaceCart.getUUID(), BorerState.BREAKING_LAYER);
             currentBlockIndex.put(furnaceCart.getUUID(), 0);
             lastActionTime.put(furnaceCart.getUUID(), furnaceCart.level().getGameTime());
-            furnaceCart.setDeltaMovement(Vec3.ZERO);
-            System.out.println("DEBUG: Switched to BREAKING_LAYER. Facing: " + facing2);
+            System.out.println("DEBUG: Wall at distance 1, switching to BREAKING_LAYER");
+            return;
+        }
+
+        if (isWallAhead(furnaceCart, facing, 2)) {
+            Vec3 current = furnaceCart.getDeltaMovement();
+            double crawlSpeed = 0.01;
+            furnaceCart.setDeltaMovement(facing.getStepX() * crawlSpeed, current.y, facing.getStepZ() * crawlSpeed);
+            return;
+        }
+
+        Vec3 current = furnaceCart.getDeltaMovement();
+        double currentSpeed = current.horizontalDistance();
+
+        if (Math.abs(currentSpeed - TRAVEL_SPEED) > SPEED_TOLERANCE) {
+            double newSpeed;
+            if (currentSpeed < 0.01) {
+                newSpeed = 0.02;
+            } else {
+                newSpeed = currentSpeed + (TRAVEL_SPEED - currentSpeed) * 0.05;
+            }
+            furnaceCart.setDeltaMovement(facing.getStepX() * newSpeed, current.y, facing.getStepZ() * newSpeed);
         }
     }
 
@@ -261,6 +264,17 @@ public class DrillerLogic {
 
         if (blockIndex < blocksToBreak.size()) {
             BlockPos posToBreak = blocksToBreak.get(blockIndex);
+            BlockState stateToBreak = world.getBlockState(posToBreak);
+
+            if (stateToBreak.isAir() || stateToBreak.getBlock() instanceof BaseRailBlock) {
+                currentBlockIndex.put(furnaceCart.getUUID(), blockIndex + 1);
+                System.out.println("DEBUG: Skipping air/rail at " + posToBreak);
+                return;
+            }
+
+            if (currentTime - lastAction < TICKS_PER_BLOCK) {
+                return;
+            }
 
             if (checkAndSealFluid(world, posToBreak, furnaceCart)) {
                 lastActionTime.put(furnaceCart.getUUID(), currentTime);
@@ -268,7 +282,6 @@ public class DrillerLogic {
             }
 
             breakBlock(world, posToBreak, furnaceCart, accessor);
-
             System.out.println("DEBUG: Broke block " + (blockIndex + 1) + "/" + blocksToBreak.size() + " at " + posToBreak);
 
             currentBlockIndex.put(furnaceCart.getUUID(), blockIndex + 1);
@@ -357,12 +370,8 @@ public class DrillerLogic {
     }
 
     private static void pushMinecartForward(MinecartFurnace furnaceCart, Direction facing) {
-        double pushStrength = 0.3;
-        Vec3 push = new Vec3(
-                facing.getStepX() * pushStrength,
-                0,
-                facing.getStepZ() * pushStrength
-        );
+        double pushStrength = 0.08D;
+        Vec3 push = new Vec3(facing.getStepX() * pushStrength, 0, facing.getStepZ() * pushStrength);
         furnaceCart.setDeltaMovement(push);
         System.out.println("DEBUG: Pushed minecart in direction " + facing + " with strength " + pushStrength);
     }
@@ -453,10 +462,10 @@ public class DrillerLogic {
         };
     }
 
-    private static boolean isWallAhead(MinecartFurnace furnaceCart, Direction facing) {
+    private static boolean isWallAhead(MinecartFurnace furnaceCart, Direction facing, int distance) {
         Level world = furnaceCart.level();
         BlockPos cartPos = furnaceCart.blockPosition();
-        BlockPos checkPos = cartPos.relative(facing, 1);
+        BlockPos checkPos = cartPos.relative(facing, distance);
 
         List<BlockPos> positions = getTunnelBlockPositions(checkPos, facing);
 
@@ -466,7 +475,6 @@ public class DrillerLogic {
                 return true;
             }
         }
-
         return false;
     }
 
