@@ -2,14 +2,15 @@
 	"schemaVersion": 1,
 	"id": "driller",
 	"version": "${version}",
-	"name": "Example mod",
-	"description": "This is an example description! Tell everyone what your mod is about!",
+	"name": "Driller",
+	"description": "A Fabric Minecraft mod which expands on Minecraft's Minecarts",
 	"authors": [
-		"Me!"
+		"DEV - Globox1997",
+		"DEV - ShiroJR"
 	],
 	"contact": {
-		"homepage": "https://fabricmc.net/",
-		"sources": "https://github.com/FabricMC/fabric-example-mod"
+		"homepage": "https://github.com/fabricated-atelier/",
+		"sources": "https://github.com/fabricated-atelier/driller"
 	},
 	"license": "MIT",
 	"icon": "assets/driller/icon.png",
@@ -30,8 +31,5 @@
 		"minecraft": "*",
 		"java": ">=21",
 		"fabric-api": "*"
-	},
-	"suggests": {
-		"another-mod": "*"
 	}
 }
