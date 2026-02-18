@@ -1,0 +1,15 @@
+{
+  "required": true,
+  "package": "net.driller.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "AbstractMinecartMixin",
+    "access.MinecartFurnaceAccessor"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+	}
+}
