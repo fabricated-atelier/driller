@@ -1,8 +1,7 @@
 package net.driller.mixin;
 
 import net.driller.access.MinecartAccess;
-//import net.driller.entity.TrainConnection;
-import net.driller.entity.TrainConnectionListener;
+import net.driller.entity.callback.TrainConnectionListener;
 import net.driller.util.DrillerLogic;
 import net.driller.util.MinecartLinkData;
 import net.driller.util.NbtKeys;
@@ -28,7 +27,6 @@ import java.util.UUID;
 
 @Mixin(AbstractMinecart.class)
 public class AbstractMinecartMixin implements MinecartAccess, TrainConnectionListener {
-
     @Unique
     private UUID linkedParentUUID = null;
 

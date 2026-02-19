@@ -7,4 +7,7 @@ public interface NbtKeys {
     String CHILD = "ChildUUID";
     String IS_LINKED = "IsLinked";
     String DRILL_ENABLED = "DrillEnabled";
+    String TRAIN_CARTS = "TrainCarts";
+    String TRAIN_CONNECTIONS = "TrainConnections";
+    String UUID = "UUID";
 }
