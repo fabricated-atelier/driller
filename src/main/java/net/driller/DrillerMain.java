@@ -1,5 +1,6 @@
 package net.driller;
 
+import net.driller.init.EntityInit;
 import net.driller.init.EventInit;
 import net.driller.init.ItemInit;
 import net.fabricmc.api.ModInitializer;
@@ -16,6 +17,7 @@ public class DrillerMain implements ModInitializer {
     @Override
     public void onInitialize() {
         EventInit.init();
+        EntityInit.init();
         ItemInit.init();
     }
 

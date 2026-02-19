@@ -1,7 +1,7 @@
 package net.driller.mixin;
 
 import net.driller.access.MinecartAccess;
-import net.driller.entity.TrainConnection;
+//import net.driller.entity.TrainConnection;
 import net.driller.entity.TrainConnectionListener;
 import net.driller.util.DrillerLogic;
 import net.driller.util.MinecartLinkData;

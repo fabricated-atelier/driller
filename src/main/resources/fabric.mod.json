@@ -4,6 +4,7 @@
 	"version": "${version}",
 	"name": "Driller",
 	"description": "A Fabric Minecraft mod which expands on Minecraft's Minecarts",
+	"accessWidener": "driller.aw",
 	"authors": [
 		"DEV - Globox1997",
 		"DEV - ShiroJR"

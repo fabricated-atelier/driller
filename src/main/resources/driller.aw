@@ -1,0 +1,3 @@
+accessWidener	v1	named
+
+accessible  method  net/minecraft/world/entity/vehicle/VehicleEntity getDropItem ()Lnet/minecraft/world/item/Item;
