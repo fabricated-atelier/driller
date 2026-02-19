@@ -4,6 +4,8 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "AbstractMinecartMixin",
+    "MinecartHopperMixin",
+    "access.AbstractMinecartContainerAccessor",
     "access.MinecartFurnaceAccessor"
   ],
   "injectors": {
@@ -11,5 +13,8 @@
   },
   "overwrites": {
     "requireAnnotations": true
-	}
+  },
+  "client": [
+    "client.MinecartRendererMixin"
+  ]
 }

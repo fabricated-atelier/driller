@@ -1,5 +1,6 @@
 package net.driller;
 
+import net.driller.init.RenderInit;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -8,6 +9,6 @@ import net.fabricmc.api.Environment;
 public class DrillerClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
-
+        RenderInit.init();
     }
 }
