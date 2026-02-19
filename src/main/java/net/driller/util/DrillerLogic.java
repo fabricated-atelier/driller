@@ -52,7 +52,7 @@ public class DrillerLogic {
         }
 
         MinecartAccess accessor = (MinecartAccess) minecart;
-        if (!accessor.isTunnelBorerEnabled()) {
+        if (!accessor.driller$isDrillEnabled()) {
             borerStates.remove(minecart.getUUID());
             lastKnownDirection.remove(minecart.getUUID());
             return;

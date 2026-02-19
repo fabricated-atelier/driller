@@ -18,7 +18,7 @@ public interface MinecartAccess {
 
     void driller$removeChild(UUID childUuid);
 
-    boolean isTunnelBorerEnabled();
+    boolean driller$isDrillEnabled();
 
-    void setTunnelBorerEnabled(boolean enabled);
+    void driller$setDrillEnabled(boolean enabled);
 }

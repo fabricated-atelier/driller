@@ -19,6 +19,9 @@
 		"main": [
           "net.driller.DrillerMain"
 		],
+		"fabric-datagen": [
+			"net.driller.DrillerDataGenerator"
+		],
 		"client": [
 			"net.driller.DrillerClient"
 		]

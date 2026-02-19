@@ -1,0 +1,11 @@
+{
+  "entity.driller.connection.added": "Connection Added",
+  "entity.driller.connection.error_link_self": "No self-links allowed",
+  "entity.driller.connection.error_no_parent": "No Parent found",
+  "entity.driller.connection.parent_selected": "Parent Selected",
+  "entity.driller.connection.removed": "Connection Removed",
+  "entity.driller.drill.off": "Drill Disabled",
+  "entity.driller.drill.on": "Drill Enabled",
+  "item.driller.item_group": "Driller",
+  "item.driller.wrench": "Wrench"
+}

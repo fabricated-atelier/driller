@@ -1,14 +1,17 @@
 package net.driller.mixin;
 
 import net.driller.access.MinecartAccess;
-import net.driller.util.MinecartLinkData;
 import net.driller.util.DrillerLogic;
+import net.driller.util.MinecartLinkData;
+import net.driller.util.NbtKeys;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.vehicle.AbstractMinecart;
 import net.minecraft.world.entity.vehicle.MinecartFurnace;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -31,18 +34,18 @@ public class AbstractMinecartMixin implements MinecartAccess {
     private boolean isLinkedToParent = false;
 
     @Unique
-    private List<UUID> linkedChildren = new ArrayList<>();
+    private final List<UUID> linkedChildren = new ArrayList<>();
 
     @Unique
     private boolean tunnelBorerEnabled = false;
 
     @Override
-    public boolean isTunnelBorerEnabled() {
+    public boolean driller$isDrillEnabled() {
         return tunnelBorerEnabled;
     }
 
     @Override
-    public void setTunnelBorerEnabled(boolean enabled) {
+    public void driller$setDrillEnabled(boolean enabled) {
         this.tunnelBorerEnabled = enabled;
     }
 
@@ -86,47 +89,48 @@ public class AbstractMinecartMixin implements MinecartAccess {
     @Inject(method = "addAdditionalSaveData", at = @At("TAIL"))
     private void addAdditionalSaveDataMixin(CompoundTag nbt, CallbackInfo info) {
         if (linkedParentUUID != null) {
-            nbt.putUUID("LinkedParentUUID", linkedParentUUID);
+            nbt.putUUID(NbtKeys.LINKED_PARENT, linkedParentUUID);
         }
-        nbt.putBoolean("IsLinked", isLinkedToParent);
+        nbt.putBoolean(NbtKeys.IS_LINKED, isLinkedToParent);
 
         if (!linkedChildren.isEmpty()) {
             ListTag childrenList = new ListTag();
             for (UUID childUuid : linkedChildren) {
                 CompoundTag childTag = new CompoundTag();
-                childTag.putUUID("ChildUUID", childUuid);
+                childTag.putUUID(NbtKeys.CHILD, childUuid);
                 childrenList.add(childTag);
             }
-            nbt.put("LinkedChildren", childrenList);
+            nbt.put(NbtKeys.LINKED_CHILDREN, childrenList);
         }
 
-        nbt.putBoolean("TunnelBorerEnabled", tunnelBorerEnabled);
+        nbt.putBoolean(NbtKeys.DRILL_ENABLED, tunnelBorerEnabled);
     }
 
     @Inject(method = "readAdditionalSaveData", at = @At("TAIL"))
     private void readAdditionalSaveDataMixin(CompoundTag nbt, CallbackInfo info) {
-        if (nbt.contains("LinkedParentUUID")) {
-            this.linkedParentUUID = nbt.getUUID("LinkedParentUUID");
+        if (nbt.contains(NbtKeys.LINKED_PARENT)) {
+            this.linkedParentUUID = nbt.getUUID(NbtKeys.LINKED_PARENT);
         }
-        this.isLinkedToParent = nbt.getBoolean("IsLinked");
+        this.isLinkedToParent = nbt.getBoolean(NbtKeys.IS_LINKED);
 
         this.linkedChildren.clear();
-        if (nbt.contains("LinkedChildren")) {
-            ListTag childrenList = nbt.getList("LinkedChildren", 10); // 10 = CompoundTag
+        if (nbt.contains(NbtKeys.LINKED_CHILDREN)) {
+            ListTag childrenList = nbt.getList(NbtKeys.LINKED_CHILDREN, Tag.TAG_COMPOUND); // 10 = CompoundTag
             for (int i = 0; i < childrenList.size(); i++) {
                 CompoundTag childTag = childrenList.getCompound(i);
-                this.linkedChildren.add(childTag.getUUID("ChildUUID"));
+                this.linkedChildren.add(childTag.getUUID(NbtKeys.CHILD));
             }
         }
 
-        this.tunnelBorerEnabled = nbt.getBoolean("TunnelBorerEnabled");
+        this.tunnelBorerEnabled = nbt.getBoolean(NbtKeys.DRILL_ENABLED);
     }
 
     @Inject(method = "tick", at = @At("TAIL"))
     private void tickMixin(CallbackInfo info) {
         AbstractMinecart thisCart = (AbstractMinecart) (Object) this;
 
-        if (thisCart.level().isClientSide()) {
+        Level level = thisCart.level();
+        if (level.isClientSide()) {
             return;
         }
 
@@ -143,7 +147,7 @@ public class AbstractMinecartMixin implements MinecartAccess {
             return;
         }
 
-        Entity parentEntity = ((ServerLevel) thisCart.level()).getEntity(parentUuid);
+        Entity parentEntity = ((ServerLevel) level).getEntity(parentUuid);
 
         if (parentEntity instanceof AbstractMinecart parentCart) {
             followParent(thisCart, parentCart);

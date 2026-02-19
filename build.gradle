@@ -29,6 +29,10 @@ dependencies {
 	
 }
 
+fabricApi {
+	configureDataGeneration()
+}
+
 processResources {
 	inputs.property "version", project.version
 

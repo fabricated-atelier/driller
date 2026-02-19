@@ -1,0 +1,11 @@
+{
+  "entity.driller.connection.added": "Verlinkung erstellt",
+  "entity.driller.connection.error_link_self": "Keine verbindung mit sich selbst möglich",
+  "entity.driller.connection.error_no_parent": "Zuglore nicht vorhanden",
+  "entity.driller.connection.parent_selected": "Zuglore ausgewählt",
+  "entity.driller.connection.removed": "Verlinkung entfernt",
+  "entity.driller.drill.off": "Bohrer ausgeschaltet",
+  "entity.driller.drill.on": "Bohrer angeschaltet",
+  "item.driller.item_group": "Driller",
+  "item.driller.wrench": "Schraubenschlüssel"
+}
