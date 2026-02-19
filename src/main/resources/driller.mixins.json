@@ -5,7 +5,6 @@
   "mixins": [
     "AbstractMinecartMixin",
     "MinecartHopperMixin",
-    "access.AbstractMinecartContainerAccessor",
     "access.MinecartFurnaceAccessor"
   ],
   "injectors": {
