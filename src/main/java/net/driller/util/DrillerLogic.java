@@ -376,9 +376,9 @@ public class DrillerLogic {
         System.out.println("DEBUG: Pushed minecart in direction " + facing + " with strength " + pushStrength);
     }
 
-    private static Direction getFacingDirection(MinecartFurnace furnaceCart) {
-        Level world = furnaceCart.level();
-        BlockPos blockPos = furnaceCart.blockPosition();
+    public static Direction getFacingDirection(AbstractMinecart abstractMinecart) {
+        Level world = abstractMinecart.level();
+        BlockPos blockPos = abstractMinecart.blockPosition();
 
         BlockPos railPos = blockPos;
         if (world.getBlockState(blockPos.below()).is(BlockTags.RAILS)) {
@@ -391,26 +391,26 @@ public class DrillerLogic {
             Direction railAxis = getRailDirection(shape);
 
             if (railAxis != null) {
-                Vec3 movement = furnaceCart.getDeltaMovement();
+                Vec3 movement = abstractMinecart.getDeltaMovement();
 
                 if (movement.horizontalDistanceSqr() > 0.001) {
                     double dot = movement.x * railAxis.getStepX() + movement.z * railAxis.getStepZ();
                     Direction fromVelocity = dot >= 0 ? railAxis : railAxis.getOpposite();
 
-                    Direction childSide = getChildrenSide(furnaceCart);
+                    Direction childSide = getChildrenSide(abstractMinecart);
                     if (childSide != null && fromVelocity.equals(childSide)) {
                         fromVelocity = fromVelocity.getOpposite();
                     }
 
-                    lastKnownDirection.put(furnaceCart.getUUID(), fromVelocity);
+                    lastKnownDirection.put(abstractMinecart.getUUID(), fromVelocity);
                     return fromVelocity;
 
                 } else {
-                    Direction childSide = getChildrenSide(furnaceCart);
+                    Direction childSide = getChildrenSide(abstractMinecart);
                     if (childSide != null) {
                         Direction awayFromChildren = childSide.getOpposite();
                         if (awayFromChildren.equals(railAxis) || awayFromChildren.equals(railAxis.getOpposite())) {
-                            lastKnownDirection.put(furnaceCart.getUUID(), awayFromChildren);
+                            lastKnownDirection.put(abstractMinecart.getUUID(), awayFromChildren);
                             return awayFromChildren;
                         }
                     }
@@ -418,15 +418,15 @@ public class DrillerLogic {
             }
         }
 
-        Direction stored = lastKnownDirection.get(furnaceCart.getUUID());
+        Direction stored = lastKnownDirection.get(abstractMinecart.getUUID());
         if (stored != null) return stored;
 
-        return furnaceCart.getMotionDirection();
+        return abstractMinecart.getMotionDirection();
     }
 
     @Nullable
-    private static Direction getChildrenSide(MinecartFurnace furnaceCart) {
-        List<AbstractMinecart> children = MinecartLinkData.getChildren(furnaceCart);
+    private static Direction getChildrenSide(AbstractMinecart abstractMinecart) {
+        List<AbstractMinecart> children = MinecartLinkData.getChildren(abstractMinecart);
         if (children.isEmpty()) return null;
 
         double avgX = 0, avgZ = 0;
@@ -437,8 +437,8 @@ public class DrillerLogic {
         avgX /= children.size();
         avgZ /= children.size();
 
-        double dx = avgX - furnaceCart.getX();
-        double dz = avgZ - furnaceCart.getZ();
+        double dx = avgX - abstractMinecart.getX();
+        double dz = avgZ - abstractMinecart.getZ();
 
         if (Math.abs(dx) < 0.1 && Math.abs(dz) < 0.1) {
             return null;
