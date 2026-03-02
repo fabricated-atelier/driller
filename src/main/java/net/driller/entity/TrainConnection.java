@@ -7,7 +7,9 @@ import net.driller.util.NbtKeys;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.vehicle.AbstractMinecart;
 import net.minecraft.world.entity.vehicle.AbstractMinecartContainer;
 import net.minecraft.world.entity.vehicle.MinecartChest;
@@ -21,22 +23,25 @@ import java.util.function.Predicate;
 
 @SuppressWarnings("UnusedReturnValue")
 public class TrainConnection {
+    private final ServerLevel level;
     private final LinkedList<AbstractMinecart> carts;
     private final HashSet<TrainConnectionListener> connectionListeners;
     private final Comparator<AbstractMinecartContainer> containerInstanceOrder =
             Comparator.comparing(c -> (c instanceof MinecartChest) ? 0 : 1);
     private final TreeSet<AbstractMinecartContainer> containers = new TreeSet<>(containerInstanceOrder.thenComparingInt(Entity::hashCode));
-
+    private final HashMap<Player, Integer> trackedCartsByPlayer;
 
     public TrainConnection(ServerLevel level) {
         this(level, new ArrayList<>());
     }
 
     TrainConnection(ServerLevel level, List<AbstractMinecart> carts) {
+        this.level = level;
         this.carts = new LinkedList<>();
         this.connectionListeners = new HashSet<>();
-        this.connectionListeners.add(TrainConnectionsSavedData.get(level.getServer()));
+        this.connectionListeners.add(TrainConnectionsSavedData.get(this.level.getServer()));
         carts.forEach(cart -> this.addCart(cart, true));
+        this.trackedCartsByPlayer = new HashMap<>();
     }
 
     public static Optional<TrainConnection> getConnection(AbstractMinecart cart) {
@@ -93,10 +98,10 @@ public class TrainConnection {
      * @param splitBefore first cart of the second connection of the split
      */
     @Nullable
-    public Pair<TrainConnection, TrainConnection> splitAndDissolveOld(ServerLevel level, AbstractMinecart splitBefore) {
+    public Pair<TrainConnection, TrainConnection> splitAndDissolveOld(AbstractMinecart splitBefore) {
         if (!this.carts.contains(splitBefore)) return null;
-        TrainConnection first = new TrainConnection(level);
-        TrainConnection last = new TrainConnection(level);
+        TrainConnection first = new TrainConnection(this.level);
+        TrainConnection last = new TrainConnection(this.level);
         boolean addToFirst = true;
         for (AbstractMinecart cart : this.carts) {
             if (cart.equals(splitBefore)) {
@@ -164,6 +169,20 @@ public class TrainConnection {
             }
         }
         return removed;
+    }
+
+    public void addTrackingCart(ServerPlayer trackingPlayer) {
+        int newCount = this.trackedCartsByPlayer.merge(trackingPlayer, 1, Integer::sum);
+        if (newCount == 1) {
+            this.connectionListeners.forEach(listener -> listener.onTrainStartedTracking(trackingPlayer));
+        }
+    }
+
+    public void stopTrackingCart(ServerPlayer trackingPlayer) {
+        int newCount = this.trackedCartsByPlayer.merge(trackingPlayer, -1, Integer::sum);
+        if (newCount == 0) {
+            this.connectionListeners.forEach(listeners -> listeners.onTrainStoppedTracking(trackingPlayer));
+        }
     }
 
     public void write(CompoundTag tag) {
