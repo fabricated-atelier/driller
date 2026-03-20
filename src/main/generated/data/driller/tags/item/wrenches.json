@@ -1,0 +1,13 @@
+{
+  "values": [
+    "driller:wrench",
+    {
+      "id": "#c:wrench",
+      "required": false
+    },
+    {
+      "id": "#c:wrenches",
+      "required": false
+    }
+  ]
+}

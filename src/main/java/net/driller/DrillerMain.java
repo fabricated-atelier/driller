@@ -1,9 +1,6 @@
 package net.driller;
 
-import net.driller.init.EntityInit;
-import net.driller.init.EventInit;
-import net.driller.init.GameRuleInit;
-import net.driller.init.ItemInit;
+import net.driller.init.*;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.resources.ResourceLocation;
 import org.slf4j.Logger;
@@ -19,6 +16,7 @@ public class DrillerMain implements ModInitializer {
         EntityInit.init();
         ItemInit.init();
         GameRuleInit.init();
+        TagsInit.initialize();
     }
 
     public static ResourceLocation identifierOf(String id) {

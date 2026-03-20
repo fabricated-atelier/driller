@@ -1,5 +1,6 @@
 package net.driller;
 
+import net.driller.datagen.DrillerTagsGenerator;
 import net.driller.datagen.DrillerTranslationGenerator;
 import net.driller.datagen.util.Language;
 import net.fabricmc.fabric.api.datagen.v1.DataGeneratorEntrypoint;
@@ -14,5 +15,7 @@ public class DrillerDataGenerator implements DataGeneratorEntrypoint {
                 new DrillerTranslationGenerator(output, Language.ENGLISH.getCode(), future));
         pack.addProvider((output, future) ->
                 new DrillerTranslationGenerator(output, Language.GERMAN.getCode(), future));
+
+        DrillerTagsGenerator.registerAll(pack);
     }
 }

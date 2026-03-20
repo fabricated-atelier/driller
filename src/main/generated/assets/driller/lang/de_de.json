@@ -7,5 +7,7 @@
   "entity.driller.drill.off": "Bohrer ausgeschaltet",
   "entity.driller.drill.on": "Bohrer angeschaltet",
   "item.driller.item_group": "Driller",
-  "item.driller.wrench": "Schraubenschlüssel"
+  "item.driller.wrench": "Schraubenschlüssel",
+  "tag.entity_type.driller.carts": "Carts",
+  "tag.item.driller.wrenches": "Wrenches"
 }

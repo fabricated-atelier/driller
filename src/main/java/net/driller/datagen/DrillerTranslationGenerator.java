@@ -3,11 +3,17 @@ package net.driller.datagen;
 import net.driller.DrillerMain;
 import net.driller.datagen.util.Language;
 import net.driller.init.ItemInit;
+import net.driller.init.TagsInit;
 import net.fabricmc.fabric.api.datagen.v1.FabricDataOutput;
 import net.fabricmc.fabric.api.datagen.v1.provider.FabricLanguageProvider;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
 
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public class DrillerTranslationGenerator extends FabricLanguageProvider {
@@ -56,6 +62,10 @@ public class DrillerTranslationGenerator extends FabricLanguageProvider {
             case GERMAN -> "Zuglore nicht vorhanden";
         });
 
+        for (TagKey<?> entry : TagsInit.ALL_TAGS) {
+            builder.add(entry, getReadable(entry.location(), false));
+        }
+
 
         if (this.language == Language.ENGLISH) {
             try {
@@ -65,5 +75,23 @@ public class DrillerTranslationGenerator extends FabricLanguageProvider {
                 throw new RuntimeException("Failed to add existing language file!", e);
             }
         }
+    }
+
+    @SuppressWarnings("SameParameterValue")
+    private static String getReadable(ResourceLocation location, boolean reverse) {
+        List<String> split = List.of(location.getPath().split("/"));
+        List<String> words = Arrays.asList(split.getLast().split("_"));
+        if (reverse) Collections.reverse(words);
+
+        StringBuilder output = new StringBuilder();
+        for (int i = 0; i < words.size(); i++) {
+            String word = words.get(i);
+            char capitalized = Character.toUpperCase(word.charAt(0));
+            output.append(capitalized).append(word.substring(1));
+            if (i < words.size() - 1) {
+                output.append(" ");
+            }
+        }
+        return output.toString();
     }
 }
